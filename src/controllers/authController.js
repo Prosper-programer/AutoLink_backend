@@ -1,5 +1,5 @@
 const pool = require('../config/database');
-const { hashPassword } = require('../utils/passwordUtils');
+const { hashPassword, comparePassword } = require('../utils/passwordUtils');
 
 const register = async (req, res) => {
   try {
@@ -66,6 +66,70 @@ const register = async (req, res) => {
   }
 };
 
+const loginUser = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // 1. Check missing fields
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Both email and password are required.'
+      });
+    }
+
+    // 2. Find user by email
+    const [users] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
+    if (users.length === 0) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid email or password'
+      });
+    }
+
+    const user = users[0];
+
+    // 3. Compare passwords
+    const isPasswordValid = await comparePassword(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid email or password'
+      });
+    }
+
+    // 4. Check account status
+    if (user.status === 'SUSPENDED') {
+      return res.status(403).json({
+        success: false,
+        message: 'Account is suspended'
+      });
+    }
+
+    // 5. Return user details (without password)
+    res.status(200).json({
+      success: true,
+      message: 'Login successful',
+      user: {
+        id: user.id,
+        full_name: user.full_name,
+        email: user.email,
+        phone: user.phone,
+        role: user.role ? user.role.split(',') : [],
+        status: user.status
+      }
+    });
+
+  } catch (error) {
+    console.error('Login Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'An error occurred during login. Please try again later.'
+    });
+  }
+};
+
 module.exports = {
-  register
+  register,
+  loginUser
 };
