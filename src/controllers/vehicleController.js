@@ -216,9 +216,56 @@ const getAvailableVehicles = async (req, res) => {
   }
 };
 
+const getVehicleById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // 1. Validate ID is numeric
+    if (isNaN(id) || id <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid vehicle ID'
+      });
+    }
+
+    // 2. Fetch only if status 'AVAILABLE' and exclude private fields
+    const query = `
+      SELECT id, brand, model, year, registration_number, category, 
+             color, fuel_type, transmission, seats, description, 
+             rental_price_per_day, status 
+      FROM vehicles 
+      WHERE id = ? AND status = 'AVAILABLE'
+    `;
+    
+    const [vehicles] = await pool.query(query, [id]);
+
+    // 3. Return 404 if not found or not AVAILABLE
+    if (vehicles.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Vehicle not found'
+      });
+    }
+
+    // 4. Return successful response
+    res.status(200).json({
+      success: true,
+      vehicle: vehicles[0]
+    });
+
+  } catch (error) {
+    console.error('Get Vehicle By ID Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'An error occurred while retrieving the vehicle details.'
+    });
+  }
+};
+
 module.exports = {
   createVehicle,
   verifyVehicle,
   getMyVehicles,
-  getAvailableVehicles
+  getAvailableVehicles,
+  getVehicleById
 };
