@@ -104,6 +104,63 @@ const createVehicle = async (req, res) => {
   }
 };
 
+const verifyVehicle = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { decision } = req.body;
+
+    // 1. Validate decision
+    if (decision !== 'APPROVE' && decision !== 'REJECT') {
+      return res.status(400).json({
+        success: false,
+        message: 'Decision must be APPROVE or REJECT'
+      });
+    }
+
+    // 2. Find the vehicle
+    const [vehicles] = await pool.query('SELECT id, status FROM vehicles WHERE id = ?', [id]);
+    if (vehicles.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Vehicle not found'
+      });
+    }
+
+    const vehicle = vehicles[0];
+
+    // 3. Check if pending
+    if (vehicle.status !== 'PENDING_VERIFICATION') {
+      return res.status(400).json({
+        success: false,
+        message: 'Vehicle is not pending verification'
+      });
+    }
+
+    // 4. Update status
+    const newStatus = decision === 'APPROVE' ? 'AVAILABLE' : 'UNAVAILABLE';
+    
+    await pool.query('UPDATE vehicles SET status = ? WHERE id = ?', [newStatus, id]);
+
+    // 5. Response
+    res.status(200).json({
+      success: true,
+      message: decision === 'APPROVE' ? 'Vehicle approved successfully' : 'Vehicle rejected',
+      vehicle: {
+        id: vehicle.id,
+        status: newStatus
+      }
+    });
+
+  } catch (error) {
+    console.error('Verify Vehicle Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'An error occurred while verifying the vehicle.'
+    });
+  }
+};
+
 module.exports = {
-  createVehicle
+  createVehicle,
+  verifyVehicle
 };
