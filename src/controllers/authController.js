@@ -1,5 +1,6 @@
 const pool = require('../config/database');
 const { hashPassword, comparePassword } = require('../utils/passwordUtils');
+const { generateToken } = require('../utils/tokenUtils');
 
 const register = async (req, res) => {
   try {
@@ -106,16 +107,21 @@ const loginUser = async (req, res) => {
       });
     }
 
-    // 5. Return user details (without password)
+    // 5. Generate JWT token
+    const userRoles = user.role ? user.role.split(',') : [];
+    const token = generateToken(user.id, userRoles);
+
+    // 6. Return user details and token (without password)
     res.status(200).json({
       success: true,
       message: 'Login successful',
+      token: token,
       user: {
         id: user.id,
         full_name: user.full_name,
         email: user.email,
         phone: user.phone,
-        role: user.role ? user.role.split(',') : [],
+        role: userRoles,
         status: user.status
       }
     });
