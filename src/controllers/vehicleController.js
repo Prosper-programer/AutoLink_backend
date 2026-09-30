@@ -160,7 +160,34 @@ const verifyVehicle = async (req, res) => {
   }
 };
 
+const getMyVehicles = async (req, res) => {
+  try {
+    // 1. Get owner ID securely from the JWT token
+    const ownerId = req.user.id;
+
+    // 2. Fetch only vehicles belonging to this specific owner
+    const [vehicles] = await pool.query(
+      'SELECT * FROM vehicles WHERE owner_id = ? ORDER BY created_at DESC', 
+      [ownerId]
+    );
+
+    // 3. Return the array (even if empty, it will be [])
+    res.status(200).json({
+      success: true,
+      vehicles
+    });
+
+  } catch (error) {
+    console.error('Get My Vehicles Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'An error occurred while retrieving your vehicles.'
+    });
+  }
+};
+
 module.exports = {
   createVehicle,
-  verifyVehicle
+  verifyVehicle,
+  getMyVehicles
 };
