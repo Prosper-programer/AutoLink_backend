@@ -186,8 +186,39 @@ const getMyVehicles = async (req, res) => {
   }
 };
 
+const getAvailableVehicles = async (req, res) => {
+  try {
+    // 1. Fetch only vehicles with status 'AVAILABLE'
+    // 2. Select only safe public fields (exclude owner_id, created_at, updated_at)
+    const query = `
+      SELECT id, brand, model, year, registration_number, category, 
+             color, fuel_type, transmission, seats, description, 
+             rental_price_per_day, status 
+      FROM vehicles 
+      WHERE status = 'AVAILABLE' 
+      ORDER BY id DESC
+    `;
+    
+    const [vehicles] = await pool.query(query);
+
+    // 3. Return the array (even if empty, it will be [])
+    res.status(200).json({
+      success: true,
+      vehicles
+    });
+
+  } catch (error) {
+    console.error('Get Available Vehicles Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'An error occurred while retrieving available vehicles.'
+    });
+  }
+};
+
 module.exports = {
   createVehicle,
   verifyVehicle,
-  getMyVehicles
+  getMyVehicles,
+  getAvailableVehicles
 };
