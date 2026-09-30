@@ -188,20 +188,69 @@ const getMyVehicles = async (req, res) => {
 
 const getAvailableVehicles = async (req, res) => {
   try {
-    // 1. Fetch only vehicles with status 'AVAILABLE'
-    // 2. Select only safe public fields (exclude owner_id, created_at, updated_at)
-    const query = `
+    const { search, category, transmission, fuel_type, min_price, max_price } = req.query;
+
+    let query = `
       SELECT id, brand, model, year, registration_number, category, 
              color, fuel_type, transmission, seats, description, 
              rental_price_per_day, status 
       FROM vehicles 
-      WHERE status = 'AVAILABLE' 
-      ORDER BY id DESC
+      WHERE status = 'AVAILABLE'
     `;
-    
-    const [vehicles] = await pool.query(query);
+    const queryParams = [];
 
-    // 3. Return the array (even if empty, it will be [])
+    // 1. Search (partial matching)
+    if (search) {
+      query += ` AND (brand LIKE ? OR model LIKE ? OR category LIKE ?)`;
+      const searchPattern = \`%\${search}%\`;
+      queryParams.push(searchPattern, searchPattern, searchPattern);
+    }
+
+    // 2. Exact Filters
+    if (category) {
+      query += ` AND category = ?`;
+      queryParams.push(category);
+    }
+    if (transmission) {
+      query += ` AND transmission = ?`;
+      queryParams.push(transmission);
+    }
+    if (fuel_type) {
+      query += ` AND fuel_type = ?`;
+      queryParams.push(fuel_type);
+    }
+
+    // 3. Price Validation and Filters
+    let min = null;
+    let max = null;
+
+    if (min_price) {
+      min = parseFloat(min_price);
+      if (isNaN(min) || min < 0) {
+        return res.status(400).json({ success: false, message: 'Invalid price' });
+      }
+      query += ` AND rental_price_per_day >= ?`;
+      queryParams.push(min);
+    }
+
+    if (max_price) {
+      max = parseFloat(max_price);
+      if (isNaN(max) || max < 0) {
+        return res.status(400).json({ success: false, message: 'Invalid price' });
+      }
+      query += ` AND rental_price_per_day <= ?`;
+      queryParams.push(max);
+    }
+
+    if (min !== null && max !== null && min > max) {
+      return res.status(400).json({ success: false, message: 'Invalid price range' });
+    }
+
+    query += ` ORDER BY id DESC`;
+    
+    const [vehicles] = await pool.query(query, queryParams);
+
+    // 4. Return the array (even if empty, it will be [])
     res.status(200).json({
       success: true,
       vehicles
