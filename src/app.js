@@ -3,6 +3,7 @@ const express = require('express');
 const authRoutes = require('./routes/authRoutes');
 const vehicleRoutes = require('./routes/vehicleRoutes');
 const rentalRequestRoutes = require('./routes/rentalRequestRoutes');
+const rentalRoutes = require('./routes/rentalRoutes');
 
 const app = express();
 
@@ -13,6 +14,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/vehicles', vehicleRoutes);
 app.use('/api/rental-requests', rentalRequestRoutes);
+app.use('/api/rentals', rentalRoutes);
 
 // Test route
 app.get('/api/health', (req, res) => {

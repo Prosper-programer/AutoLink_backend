@@ -56,3 +56,24 @@ CREATE TABLE IF NOT EXISTS rental_requests (
     INDEX idx_rental_requests_vehicle (vehicle_id),
     INDEX idx_rental_requests_status (status)
 ) ENGINE=InnoDB;
+
+-- Rentals Table
+CREATE TABLE IF NOT EXISTS rentals (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    rental_request_id INT NOT NULL UNIQUE,
+    client_id INT NOT NULL,
+    vehicle_id INT NOT NULL,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    fulfillment_method ENUM('PICKUP', 'DELIVERY') NOT NULL,
+    status ENUM('ACTIVE', 'COMPLETED', 'CANCELLED') NOT NULL DEFAULT 'ACTIVE',
+    activated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (rental_request_id) REFERENCES rental_requests(id) ON DELETE RESTRICT,
+    FOREIGN KEY (client_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (vehicle_id) REFERENCES vehicles(id) ON DELETE CASCADE,
+    INDEX idx_rentals_client (client_id),
+    INDEX idx_rentals_vehicle (vehicle_id),
+    INDEX idx_rentals_status (status)
+) ENGINE=InnoDB;
